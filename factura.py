@@ -510,7 +510,7 @@ def main(page: ft.Page):
         content=ft.Column([
             ft.Row([
                 ft.Column([ft.Text("Nueva factura", size=28, weight=ft.FontWeight.BOLD), ft.Text("Crea el comprobante de venta en pocos pasos", color=ft.Colors.BLUE_GREY_700)], spacing=3),
-                ft.Container(content=ft.Row([ft.Icon(ft.Icons.TODAY_ROUNDED, size=17, color=ft.Colors.TEAL_700), ft.Text("Venta de hoy", color=ft.Colors.TEAL_800, weight=ft.FontWeight.W_600)], spacing=8), padding=ft.Padding.symmetric(horizontal=14, vertical=9), bgcolor=ft.Colors.TEAL_50, border_radius=20),
+                ft.Container(content=ft.Row([ft.Icon(ft.Icons.TODAY_ROUNDED, size=17, color=ft.Colors.TEAL_700), ft.Text("Facturas del día", color=ft.Colors.TEAL_800, weight=ft.FontWeight.W_600)], spacing=8), padding=ft.Padding.symmetric(horizontal=14, vertical=9), bgcolor=ft.Colors.TEAL_50, border_radius=20),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Row([
                 ft.Column([
@@ -518,7 +518,7 @@ def main(page: ft.Page):
                         ft.Row([ft.Icon(ft.Icons.ADD_SHOPPING_CART_ROUNDED, color=ft.Colors.TEAL_700), ft.Text("Añadir productos", size=17, weight=ft.FontWeight.BOLD)], spacing=8),
                         ft.Text("Busca un producto del catálogo y define la cantidad.", size=12, color=ft.Colors.BLUE_GREY_600),
                         ft.Row([inp_concepto, inp_precio, inp_cantidad], spacing=10),
-                        ft.Row([ft.Container(content=ft.Text(""), expand=True), ft.FilledButton("Añadir a la venta", icon=ft.Icons.ADD_ROUNDED, height=44, on_click=add_to_invoice)],),
+                        ft.Row([ft.Container(content=ft.Text(""), expand=True), ft.FilledButton("Añadir a la factura", icon=ft.Icons.ADD_ROUNDED, height=44, on_click=add_to_invoice)],),
                         suggestions_box,
                     ], spacing=10), padding=20, bgcolor=ft.Colors.WHITE, border_radius=14),
                     ft.Container(content=ft.Column([
@@ -583,8 +583,8 @@ def main(page: ft.Page):
         catalog_nav.bgcolor = ft.Colors.ORANGE_100 if catalog_view.visible else None
         page.update()
 
-    invoice_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.POINT_OF_SALE_ROUNDED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Ventas", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Nueva factura", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("invoice"))
-    catalog_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Catálogo", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Productos y precios", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("catalog"))
+    invoice_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.POINT_OF_SALE_ROUNDED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Facturación", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Nueva factura", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("invoice"))
+    catalog_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Inventario", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Productos y precios", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("catalog"))
     sidebar = ft.Container(content=ft.Column([
         ft.Row([ft.Container(content=ft.Icon(ft.Icons.RECEIPT_LONG_ROUNDED, color=ft.Colors.WHITE, size=22), padding=8, bgcolor=ft.Colors.BLUE_700, border_radius=10), ft.Text("Dulcería Loaiza", color=ft.Colors.BLUE_GREY_900, size=16, weight=ft.FontWeight.BOLD)], spacing=10),
         ft.Divider(color=ft.Colors.BLUE_GREY_300, height=30),

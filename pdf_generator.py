@@ -156,7 +156,7 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
                     estilos["Normal"],
                 ),
                 Paragraph(
-                    f"Fecha: {fecha_actual}<br/>Vendedor: Jhoan Hernandes<br/>Numero: 3014653717 ",
+                    f"Fecha: {fecha_actual}<br/>Vendedor: N/A <br/>Numero: 3014653717 ",
                     estilos["Normal"],
                 ),
             ]
