@@ -72,7 +72,7 @@ def main(page: ft.Page):
     # 4. Estado de Conexión a MySQL en XAMPP
     status_icon = ft.Icon(ft.Icons.CIRCLE, color=ft.Colors.GREY_400, size=12)
     status_text = ft.Text("Verificando Conexión...", size=13, weight=ft.FontWeight.W_500)
-    database_mode_text = ft.Text("Ventas locales", size=11, color=ft.Colors.BLUE_GREY_200)
+    database_mode_text = ft.Text("Ventas locales", size=11, color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600)
 
     banner_xampp = ft.Banner(
         bgcolor=ft.Colors.AMBER_50,
@@ -573,8 +573,8 @@ def main(page: ft.Page):
         render_catalogo(catalogo)
         page.update()
 
-    database_switch = ft.Switch(label="Ventas de la costa", value=False, on_change=change_database)
-    costa_manage_switch = ft.Switch(label="Permitir gestionar productos", value=True, on_change=change_costa_permissions)
+    database_switch = ft.Switch(label="Ventas de la costa", value=False, label_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_database)
+    costa_manage_switch = ft.Switch(label="Permitir gestionar productos", value=True, label_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_costa_permissions)
 
     def select_view(view: str):
         invoice_view.visible = view == "invoice"
@@ -583,22 +583,22 @@ def main(page: ft.Page):
         catalog_nav.bgcolor = ft.Colors.ORANGE_100 if catalog_view.visible else None
         page.update()
 
-    invoice_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.POINT_OF_SALE_ROUNDED), ft.Column([ft.Text("Ventas", weight=ft.FontWeight.W_600), ft.Text("Nueva factura", size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("invoice"))
-    catalog_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.INVENTORY_2_OUTLINED), ft.Column([ft.Text("Catálogo", weight=ft.FontWeight.W_600), ft.Text("Productos y precios", size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("catalog"))
+    invoice_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.POINT_OF_SALE_ROUNDED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Ventas", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Nueva factura", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("invoice"))
+    catalog_nav = ft.Container(content=ft.Row([ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, color=ft.Colors.BLUE_GREY_900), ft.Column([ft.Text("Catálogo", color=ft.Colors.BLUE_GREY_900, weight=ft.FontWeight.W_600), ft.Text("Productos y precios", color=ft.Colors.BLUE_GREY_800, size=11)], spacing=1)]), padding=12, border_radius=10, ink=True, on_click=lambda e: select_view("catalog"))
     sidebar = ft.Container(content=ft.Column([
-        ft.Row([ft.Container(content=ft.Icon(ft.Icons.RECEIPT_LONG_ROUNDED, color=ft.Colors.BLUE_GREY_900, size=22), padding=8, bgcolor=ft.Colors.ORANGE_400, border_radius=10), ft.Text("Dulcería Loaiza", color=ft.Colors.WHITE, size=16, weight=ft.FontWeight.BOLD)], spacing=10),
-        ft.Divider(color=ft.Colors.WHITE24, height=30),
-        ft.Text("MENÚ PRINCIPAL", size=11, color=ft.Colors.BLUE_GREY_200, weight=ft.FontWeight.BOLD),
+        ft.Row([ft.Container(content=ft.Icon(ft.Icons.RECEIPT_LONG_ROUNDED, color=ft.Colors.WHITE, size=22), padding=8, bgcolor=ft.Colors.BLUE_700, border_radius=10), ft.Text("Dulcería Loaiza", color=ft.Colors.BLUE_GREY_900, size=16, weight=ft.FontWeight.BOLD)], spacing=10),
+        ft.Divider(color=ft.Colors.BLUE_GREY_300, height=30),
+        ft.Text("MENÚ PRINCIPAL", size=11, color=ft.Colors.BLUE_GREY_800, weight=ft.FontWeight.BOLD),
         invoice_nav, catalog_nav,
         ft.Container(content=ft.Column([
-            ft.Text("ORIGEN DE PRECIOS", size=10, color=ft.Colors.BLUE_GREY_200, weight=ft.FontWeight.BOLD),
+            ft.Text("ORIGEN DE PRECIOS", size=10, color=ft.Colors.BLUE_GREY_800, weight=ft.FontWeight.BOLD),
             database_switch,
             costa_manage_switch,
-        ], spacing=6, horizontal_alignment=ft.CrossAxisAlignment.STRETCH), padding=ft.Padding.only(top=12, bottom=10), border=ft.Border.only(top=ft.BorderSide(1, ft.Colors.WHITE24), bottom=ft.BorderSide(1, ft.Colors.WHITE24))),
+        ], spacing=6, horizontal_alignment=ft.CrossAxisAlignment.STRETCH), padding=ft.Padding.only(top=12, bottom=10), border=ft.Border.only(top=ft.BorderSide(1, ft.Colors.BLUE_GREY_300), bottom=ft.BorderSide(1, ft.Colors.BLUE_GREY_300))),
         ft.Container(content=ft.Text(""), expand=True),
-        ft.Container(content=ft.Column([ft.Text("Conexión activa", size=10, color=ft.Colors.BLUE_GREY_200), ft.Row([status_icon, status_text], spacing=8), database_mode_text], spacing=4), padding=10, bgcolor=ft.Colors.WHITE10, border_radius=8),
-        ft.Row([ft.Text("Sincronizar", size=11, color=ft.Colors.BLUE_GREY_200), ft.IconButton(ft.Icons.SYNC_ROUNDED, icon_color=ft.Colors.WHITE, icon_size=18, tooltip="Comprobar conexión", on_click=lambda e: reload_data(notify_ok=True))], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-    ], spacing=8), width=300, padding=20, bgcolor=ft.Colors.GREEN_700)
+        ft.Container(content=ft.Column([ft.Text("Conexión activa", size=10, color=ft.Colors.BLUE_GREY_800, weight=ft.FontWeight.BOLD), ft.Row([status_icon, status_text], spacing=8), database_mode_text], spacing=4), padding=10, bgcolor=ft.Colors.BLUE_50, border_radius=8),
+        ft.Row([ft.Text("Sincronizar", size=11, color=ft.Colors.BLUE_GREY_800, weight=ft.FontWeight.W_600), ft.IconButton(ft.Icons.SYNC_ROUNDED, icon_color=ft.Colors.BLUE_GREY_900, icon_size=18, tooltip="Comprobar conexión", on_click=lambda e: reload_data(notify_ok=True))], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+    ], spacing=8), width=300, padding=20, bgcolor=ft.Colors.BLUE_100)
 
     content_area = ft.Column(
         [banner_xampp, invoice_view, catalog_view],
