@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 07-12-2024 a las 18:06:50
+-- Tiempo de generación: 20-08-2026 a las 05:24:09
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Base de datos: `facturacion`
+-- Base de datos: `database`
 --
 
 -- --------------------------------------------------------
@@ -313,6 +313,25 @@ INSERT INTO `productos` (`id`, `concepto`, `precio`) VALUES
 (285, 'Banana yogurt x100  ', 8000),
 (286, 'Soneto x100  ', 9000);
 
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `productos_costa`
+--
+
+CREATE TABLE `productos_costa` (
+  `id` int(5) NOT NULL,
+  `concepto` varchar(50) NOT NULL,
+  `precio` int(10) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `productos_costa`
+--
+
+INSERT INTO `productos_costa` (`id`, `concepto`, `precio`) VALUES
+(1, 'Bombo bum x20', 40000);
+
 --
 -- Índices para tablas volcadas
 --
@@ -324,6 +343,12 @@ ALTER TABLE `productos`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indices de la tabla `productos_costa`
+--
+ALTER TABLE `productos_costa`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
@@ -332,6 +357,12 @@ ALTER TABLE `productos`
 --
 ALTER TABLE `productos`
   MODIFY `id` int(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=287;
+
+--
+-- AUTO_INCREMENT de la tabla `productos_costa`
+--
+ALTER TABLE `productos_costa`
+  MODIFY `id` int(5) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -91,7 +91,6 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
             os.path.join(ruta_base, "imagenes", "amer.png"),
             os.path.join(ruta_base, "imagenes", "mas.png"),
             os.path.join(ruta_base, "imagenes", "postobon.png"),
-            os.path.join(ruta_base, "imagenes", "bavaria.png"),
         ]
 
         if os.path.exists(logo_izquierdo):

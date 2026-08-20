@@ -24,7 +24,7 @@ class ItemFactura:
 
 def main(page: ft.Page):
     # 1. Configuración de Ventana y Tema Material Design 3
-    page.title = "Sistema de Facturación - Dulcería R & V"
+    page.title = "Sistema de Inventario y Facturación - Dulcería Loaiza"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.TEAL, use_material3=True)
     page.window.width = 1100
@@ -573,8 +573,8 @@ def main(page: ft.Page):
         render_catalogo(catalogo)
         page.update()
 
-    database_switch = ft.Switch(label="Ventas de la costa", value=False, label_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_database)
-    costa_manage_switch = ft.Switch(label="Permitir gestionar productos", value=True, label_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_costa_permissions)
+    database_switch = ft.Switch(label="Ventas de la costa", value=False, label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_database)
+    costa_manage_switch = ft.Switch(label="Permitir gestionar productos", value=True, label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_costa_permissions)
 
     def select_view(view: str):
         invoice_view.visible = view == "invoice"
