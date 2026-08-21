@@ -46,7 +46,7 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
         doc = BaseDocTemplate(archivo, pagesize=letter)
 
         margen_superior = 25
-        margen_inferior = 80
+        margen_inferior = 145
         ancho, alto = letter
 
         frame_contenido = Frame(
@@ -59,25 +59,41 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
 
         def template(canvas, doc_obj):
             canvas.saveState()
-            y_centro = (alto + margen_inferior + margen_superior) / 2
             total = sum(p.monto for p in productos)
-            firma_y_total = [
-                [
+            estilos_total = estilos["Heading3"].clone("TotalFactura")
+            estilos_total.alignment = 2
+            tabla_firma_total = Table(
+                [[
                     Paragraph("Firma: ___________________________", estilos["Normal"]),
-                    Paragraph(f"Total a Pagar: ${total:,.2f}", estilos["Heading4"]),
-                ]
-            ]
-            tabla_firma_total = Table(firma_y_total, colWidths=[400, 150])
+                    Paragraph(f"Total a Pagar: ${total:,.2f}", estilos_total),
+                ]],
+                colWidths=[256, 256],
+            )
             tabla_firma_total.setStyle(
                 TableStyle(
                     [
+                        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                         ("ALIGN", (0, 0), (0, 0), "LEFT"),
                         ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+                        ("TOPPADDING", (0, 0), (-1, -1), 8),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
                     ]
                 )
             )
-            tabla_firma_total.wrapOn(canvas, 400, 50)
-            tabla_firma_total.drawOn(canvas, 50, y_centro - 30)
+            tabla_firma_total.wrapOn(canvas, ancho - 100, 40)
+            tabla_firma_total.drawOn(canvas, 50, 78)
+
+            estilos_aviso = estilos["Normal"].clone("AvisoReclamos")
+            estilos_aviso.fontName = "Helvetica-Bold"
+            estilos_aviso.fontSize = 12
+            estilos_aviso.leading = 17
+            estilos_aviso.alignment = 1
+            aviso = Paragraph(
+                "DESPUES DE 3 DIAS DE RECIBIDA LA MERCANCIA NO SE ACEPTAN RECLAMOS",
+                estilos_aviso,
+            )
+            aviso.wrapOn(canvas, ancho - 100, 40)
+            aviso.drawOn(canvas, 50, 28)
             canvas.restoreState()
 
         doc.addPageTemplates([PageTemplate(id="principal", frames=frame_contenido, onPage=template)])
@@ -89,14 +105,14 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
         logos_derecha = [
             os.path.join(ruta_base, "imagenes", "colombina.png"),
             os.path.join(ruta_base, "imagenes", "amer.png"),
-            os.path.join(ruta_base, "imagenes", "mas.png"),
+            os.path.join(ruta_base, "imagenes", "rico.png"),
             os.path.join(ruta_base, "imagenes", "postobon.png"),
+            os.path.join(ruta_base, "imagenes", "fritomix.png"),
         ]
 
         if os.path.exists(logo_izquierdo):
             logo_left = Image(logo_izquierdo)
-            logo_left.drawHeight = 100
-            logo_left.drawWidth = 130
+            logo_left._restrictSize(130, 75)
         else:
             logo_left = ""
 
@@ -104,8 +120,10 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
         for logo_path in logos_derecha:
             if os.path.exists(logo_path):
                 logo = Image(logo_path)
-                logo.drawHeight = 40
-                logo.drawWidth = 70
+                if os.path.basename(logo_path).lower() == "fritomix.png":
+                    logo._restrictSize(40, 40)
+                else:
+                    logo._restrictSize(70, 40)
                 logo_data_derecha.append(logo)
 
         if not logo_data_derecha:
