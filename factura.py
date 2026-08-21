@@ -1,9 +1,4 @@
-"""
-Sistema de Facturación Electrónica - Dulcería R & V
-Interfaz gráfica desarrollada con Flet (Material Design 3).
-- Persistencia y operaciones CRUD: db.py
-- Generación de reportes PDF: pdf_generator.py
-"""
+
 
 import flet as ft
 from decimal import Decimal, InvalidOperation
@@ -27,10 +22,7 @@ def main(page: ft.Page):
     page.title = "Sistema de Inventario y Facturación - Dulcería Loaiza"
     page.theme_mode = ft.ThemeMode.LIGHT
     page.theme = ft.Theme(color_scheme_seed=ft.Colors.TEAL, use_material3=True)
-    page.window.width = 1100
-    page.window.height = 800
-    page.window.min_width = 850
-    page.window.min_height = 650
+    page.window.maximized = True 
     page.padding = 0
     page.scroll = None
 
@@ -509,7 +501,7 @@ def main(page: ft.Page):
     invoice_view = ft.Container(
         content=ft.Column([
             ft.Row([
-                ft.Column([ft.Text("Nueva factura", size=28, weight=ft.FontWeight.BOLD), ft.Text("Crea el comprobante de venta en pocos pasos", color=ft.Colors.BLUE_GREY_700)], spacing=3),
+                ft.Column([ft.Text("Nueva factura", size=28, weight=ft.FontWeight.BOLD), ft.Text("Crea tu factura en pocos pasos", color=ft.Colors.BLUE_GREY_700)], spacing=3),
                 ft.Container(content=ft.Row([ft.Icon(ft.Icons.TODAY_ROUNDED, size=17, color=ft.Colors.TEAL_700), ft.Text("Facturas del día", color=ft.Colors.TEAL_800, weight=ft.FontWeight.W_600)], spacing=8), padding=ft.Padding.symmetric(horizontal=14, vertical=9), bgcolor=ft.Colors.TEAL_50, border_radius=20),
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
             ft.Row([
@@ -573,7 +565,7 @@ def main(page: ft.Page):
         render_catalogo(catalogo)
         page.update()
 
-    database_switch = ft.Switch(label="Ventas de la costa", value=False, label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_database)
+    database_switch = ft.Switch(label="Activar inventario de la costa", value=False, label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_database)
     costa_manage_switch = ft.Switch(label="Permitir gestionar productos", value=True, label_text_style=ft.TextStyle(color=ft.Colors.BLUE_GREY_900, size=13), on_change=change_costa_permissions)
 
     def select_view(view: str):
