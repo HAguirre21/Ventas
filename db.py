@@ -14,7 +14,7 @@ DB_CONFIG = {
     "host": "localhost",
     "user": "root",
     "password": "",
-    "database": "database",
+    "database": "facturacion",
     "connect_timeout": 5
 }
 

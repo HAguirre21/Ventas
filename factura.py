@@ -113,7 +113,7 @@ def main(page: ft.Page):
         border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
         border_radius=8,
         padding=6,
-        shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.BLACK12),
+        shadow=ft.BoxShadow(spread_radius=1, blur_radius=8, color=ft.Colors.BLACK_12),
         height=180,
     )
 
