@@ -106,7 +106,7 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
             os.path.join(ruta_base, "imagenes", "colombina.png"),
             os.path.join(ruta_base, "imagenes", "super.png"),
             os.path.join(ruta_base, "imagenes", "rico.png"),
-            os.path.join(ruta_base, "imagenes", "postobon.png"),
+            os.path.join(ruta_base, "imagenes", "aldor.png"),
             os.path.join(ruta_base, "imagenes", "fritomix.png"),
         ]
 
@@ -120,8 +120,11 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
         for logo_path in logos_derecha:
             if os.path.exists(logo_path):
                 logo = Image(logo_path)
-                if os.path.basename(logo_path).lower() == "fritomix.png":
+                nombre_logo = os.path.basename(logo_path).lower()
+                if nombre_logo == "fritomix.png":
                     logo._restrictSize(40, 40)
+                elif nombre_logo == "aldor.png":
+                    logo._restrictSize(75, 75)
                 else:
                     logo._restrictSize(70, 40)
                 logo_data_derecha.append(logo)
@@ -141,7 +144,7 @@ def generar_factura_pdf(productos: List[Any], info_cliente: dict = None) -> tupl
 
         encabezado = Table(
             [[logo_left, "", tabla_derecha]],
-            colWidths=[70, 150, 300],
+            colWidths=[70, 110, 332],
         )
         encabezado.setStyle(
             TableStyle(
