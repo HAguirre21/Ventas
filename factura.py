@@ -598,8 +598,14 @@ def main(page: ft.Page):
         scroll=ft.ScrollMode.AUTO,
     )
     page.add(ft.Row([sidebar, content_area], expand=True, spacing=0))
-    reload_data()
     render_invoice()
+    page.update()
+    try:
+        reload_data()
+    except Exception as ex:
+        update_connection_ui(False)
+        notify(f"No se pudo conectar a la base de datos: {ex}", es_error=True)
+
 
 
 if __name__ == "__main__":

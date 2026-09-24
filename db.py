@@ -3,19 +3,22 @@ Módulo de gestión de base de datos MySQL (XAMPP) para el Sistema de Facturaci�
 Maneja conexiones seguras, transacciones (commit/rollback) y operaciones CRUD para productos.
 """
 
+import time
 import mysql.connector
 from mysql.connector import Error
 from decimal import Decimal
 from typing import List, Dict, Tuple, Optional, Any
 
 
-# Configuración por defecto para XAMPP MySQL
+# Configuración por defecto para XAMPP MySQL con prevención de timeout
 DB_CONFIG = {
-    "host": "localhost",
+    "host": "127.0.0.1",
     "user": "root",
     "password": "",
     "database": "facturacion",
-    "connect_timeout": 5
+    "connect_timeout": 10,
+    "autocommit": True,
+    "use_pure": True
 }
 
 DB_PROFILES = {
@@ -50,38 +53,47 @@ def _tabla_activa() -> str:
     return DB_PROFILES[_active_profile]["table"]
 
 
-def obtener_conexion() -> Optional[mysql.connector.MySQLConnection]:
+def obtener_conexion(intentos: int = 3, delay: int = 1) -> Optional[mysql.connector.MySQLConnection]:
     """
-    Establece y retorna una conexión a la base de datos MySQL en XAMPP.
-    Retorna None si no se puede conectar.
+    Establece y retorna una conexión activa a MySQL en XAMPP.
+    Si la conexión inicial falla o expira por timeout, reintenta y aplica auto-reconexión.
     """
-    try:
-        conexion = mysql.connector.connect(**_configuracion_activa())
-        if conexion.is_connected():
-            return conexion
-    except Error as e:
-        print(f"[DB Error] Error al conectar con MySQL en XAMPP: {e}")
-        return None
+    for intento in range(1, intentos + 1):
+        try:
+            conexion = mysql.connector.connect(**_configuracion_activa())
+            if conexion.is_connected():
+                # Valida la salud de la conexión y reconecta automáticamente si caducó
+                conexion.ping(reconnect=True, attempts=intentos, delay=delay)
+                return conexion
+        except (Error, Exception) as e:
+            print(f"[DB Reconnect] Intento {intento}/{intentos} falló: {e}")
+            if intento < intentos:
+                time.sleep(delay)
     return None
 
 
 def verificar_conexion() -> Tuple[bool, str]:
     """
-    Verifica si el servidor MySQL está activo y la base de datos existe.
+    Verifica si el servidor MySQL está activo y la base de datos existe
+    utilizando la conexión protegida con auto-reconexión.
     Retorna (True, "Conectado") o (False, mensaje_error).
     """
-    try:
-        conexion = mysql.connector.connect(**_configuracion_activa())
-        if conexion.is_connected():
+    conexion = obtener_conexion(intentos=3, delay=1)
+    if conexion:
+        try:
             cursor = conexion.cursor()
             cursor.execute("SELECT DATABASE()")
             db_name = cursor.fetchone()
             cursor.close()
             conexion.close()
             return True, f"Conectado a '{db_name[0]}' en MySQL (XAMPP)"
-    except Error as e:
-        return False, f"No se pudo conectar a MySQL: {e}. Asegúrate de que Apache/MySQL estén iniciados en XAMPP."
-    return False, "Conexión rechazada por el servidor MySQL."
+        except Exception as e:
+            try:
+                conexion.close()
+            except Exception:
+                pass
+            return False, f"No se pudo consultar la base de datos: {e}. Asegúrate de que Apache/MySQL estén iniciados en XAMPP."
+    return False, "No se pudo conectar a MySQL tras varios intentos. Asegúrate de que Apache/MySQL estén iniciados en XAMPP."
 
 
 def obtener_todos_los_productos() -> List[Dict[str, Any]]:
