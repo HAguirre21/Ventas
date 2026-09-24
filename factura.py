@@ -129,15 +129,27 @@ def main(page: ft.Page):
         q = inp_concepto.value.strip().lower()
         suggestions_col.controls.clear()
         if q and catalogo:
-            matches = [p["concepto"] for p in catalogo if q in p["concepto"].lower()][:6]
+            matches = [p for p in catalogo if q in p["concepto"].lower()][:6]
             for m in matches:
+                stock_val = m.get("cantidad", 0)
                 suggestions_col.controls.append(
                     ft.Container(
-                        content=ft.Row([ft.Icon(ft.Icons.SUBDIRECTORY_ARROW_RIGHT_ROUNDED, size=16, color=ft.Colors.PRIMARY), ft.Text(m, size=13, weight=ft.FontWeight.W_500)], spacing=8),
+                        content=ft.Row([
+                            ft.Row([
+                                ft.Icon(ft.Icons.SUBDIRECTORY_ARROW_RIGHT_ROUNDED, size=16, color=ft.Colors.PRIMARY),
+                                ft.Text(m["concepto"], size=13, weight=ft.FontWeight.W_500),
+                            ], spacing=8),
+                            ft.Container(
+                                content=ft.Text(f"Stock: {stock_val}", size=11, color=ft.Colors.BLUE_GREY_700, weight=ft.FontWeight.W_600),
+                                bgcolor=ft.Colors.BLUE_GREY_50,
+                                border_radius=4,
+                                padding=ft.Padding.symmetric(horizontal=6, vertical=2),
+                            ),
+                        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
                         padding=ft.Padding.symmetric(horizontal=10, vertical=6),
                         border_radius=6,
                         ink=True,
-                        on_click=lambda ev, name=m: select_suggestion(name),
+                        on_click=lambda ev, name=m["concepto"]: select_suggestion(name),
                     )
                 )
             suggestions_box.visible = bool(matches)
@@ -228,6 +240,14 @@ def main(page: ft.Page):
             notify("Valores numéricos inválidos.", es_error=True)
             return
 
+        # Validación informativa de stock
+        prod_cat = next((p for p in catalogo if p["concepto"].lower() == concepto.lower()), None)
+        if prod_cat:
+            stock_disp = prod_cat.get("cantidad", 0)
+            ya_agregado = sum(it.cantidad for it in items_factura if it.concepto.lower() == concepto.lower())
+            if ya_agregado + cantidad > stock_disp:
+                notify(f"Atención: Stock disponible ({stock_disp}) es menor a la cantidad total facturada ({ya_agregado + cantidad}).", es_advertencia=True)
+
         items_factura.append(ItemFactura(concepto, precio, cantidad))
         inp_concepto.value = ""
         inp_precio.value = ""
@@ -258,7 +278,14 @@ def main(page: ft.Page):
             close_dialog(dialog)
             ok, res = pdf_generator.generar_factura_pdf(items_factura, {"nombre": nombre})
             if ok:
-                notify(f"Factura generada exitosamente: {res}")
+                ok_stock, msg_stock = db.descontar_stock_productos(items_factura)
+                items_factura.clear()
+                render_invoice()
+                reload_data()
+                if ok_stock:
+                    notify(f"Factura generada y stock descontado exitosamente: {res}")
+                else:
+                    notify(f"Factura generada, pero aviso en stock: {msg_stock}", es_advertencia=True)
             else:
                 notify(f"Error al generar PDF: {res}", es_error=True)
 
@@ -295,11 +322,12 @@ def main(page: ft.Page):
         heading_row_color=ft.Colors.SURFACE_CONTAINER_HIGH,
         heading_row_height=46,
         data_row_min_height=46,
-        column_spacing=80,
+        column_spacing=45,
         expand=True,
         columns=[
             ft.DataColumn(ft.Text("ID", weight=ft.FontWeight.BOLD, size=13)),
             ft.DataColumn(ft.Text("Nombre del Producto", weight=ft.FontWeight.BOLD, size=13)),
+            ft.DataColumn(ft.Text("Cantidad", weight=ft.FontWeight.BOLD, size=13), numeric=True),
             ft.DataColumn(ft.Text("Precio Unitario", weight=ft.FontWeight.BOLD, size=13), numeric=True),
             ft.DataColumn(ft.Text("Acciones", weight=ft.FontWeight.BOLD, size=13)),
         ],
@@ -317,12 +345,13 @@ def main(page: ft.Page):
             notify("La base de datos de la costa esta en modo solo consulta.", es_advertencia=True)
             return
         name_field = ft.TextField(label="Nombre del Producto", border_radius=8, autofocus=True)
+        qty_field = ft.TextField(label="Cantidad en Stock", value="0", border_radius=8, prefix_icon=ft.Icons.NUMBERS_ROUNDED, keyboard_type=ft.KeyboardType.NUMBER)
         price_field = ft.TextField(label="Precio Unitario ($)", border_radius=8, prefix_icon=ft.Icons.ATTACH_MONEY_ROUNDED, keyboard_type=ft.KeyboardType.NUMBER)
 
         def save_new(ev, dlg):
-            nom, pr_str = name_field.value.strip(), price_field.value.strip()
+            nom, pr_str, qty_str = name_field.value.strip(), price_field.value.strip(), qty_field.value.strip()
             if not nom or not pr_str:
-                notify("Completa todos los campos.", es_advertencia=True)
+                notify("Completa todos los campos obligatorios.", es_advertencia=True)
                 return
             try:
                 pr = Decimal(pr_str)
@@ -332,17 +361,25 @@ def main(page: ft.Page):
             except Exception:
                 notify("Precio inválido.", es_error=True)
                 return
-            ok, msj, new_id = db.agregar_producto(nom, pr)
+            try:
+                qty = int(qty_str or "0")
+                if qty < 0:
+                    notify("La cantidad no puede ser negativa.", es_error=True)
+                    return
+            except Exception:
+                notify("Cantidad inválida.", es_error=True)
+                return
+            ok, msj, new_id = db.agregar_producto(nom, pr, qty)
             if ok:
                 close_dialog(dlg)
                 reload_data()
-                notify(f"Producto '{nom}' creado en la Base de Datos (ID #{new_id}).")
+                notify(f"Producto '{nom}' creado en productos y productos_costa (ID #{new_id}).")
             else:
                 notify(msj, es_error=True)
 
         dlg_create = ft.AlertDialog(
             title=ft.Row([ft.Icon(ft.Icons.ADD_BOX_ROUNDED, color=ft.Colors.PRIMARY), ft.Text("Nuevo Producto", weight=ft.FontWeight.BOLD)], spacing=8),
-            content=ft.Container(content=ft.Column([name_field, price_field], spacing=10, tight=True), width=400),
+            content=ft.Container(content=ft.Column([name_field, qty_field, price_field], spacing=10, tight=True), width=400),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda ev: close_dialog(dlg_create)),
                 ft.FilledButton("Guardar", icon=ft.Icons.SAVE_ROUNDED, on_click=lambda ev: save_new(ev, dlg_create)),
@@ -356,10 +393,11 @@ def main(page: ft.Page):
             notify("Activa el modo de gestion para modificar productos.", es_advertencia=True)
             return
         name_field = ft.TextField(label="Nombre del Producto", value=prod["concepto"], border_radius=8, autofocus=True)
+        qty_field = ft.TextField(label="Cantidad en Stock", value=str(prod.get("cantidad", 0)), border_radius=8, prefix_icon=ft.Icons.NUMBERS_ROUNDED, keyboard_type=ft.KeyboardType.NUMBER)
         price_field = ft.TextField(label="Precio Unitario ($)", value=f"{prod['precio']:.2f}", border_radius=8, prefix_icon=ft.Icons.ATTACH_MONEY_ROUNDED, keyboard_type=ft.KeyboardType.NUMBER)
 
         def save_edit(ev, dlg):
-            nom, pr_str = name_field.value.strip(), price_field.value.strip()
+            nom, pr_str, qty_str = name_field.value.strip(), price_field.value.strip(), qty_field.value.strip()
             if not nom:
                 notify("El nombre no puede estar vacío.", es_advertencia=True)
                 return
@@ -371,7 +409,15 @@ def main(page: ft.Page):
             except Exception:
                 notify("Precio inválido.", es_error=True)
                 return
-            ok, msj = db.actualizar_producto(prod["id"], nom, pr)
+            try:
+                qty = int(qty_str or "0")
+                if qty < 0:
+                    notify("La cantidad no puede ser negativa.", es_error=True)
+                    return
+            except Exception:
+                notify("Cantidad inválida.", es_error=True)
+                return
+            ok, msj = db.actualizar_producto(prod["id"], nom, pr, qty)
             if ok:
                 close_dialog(dlg)
                 reload_data()
@@ -381,7 +427,7 @@ def main(page: ft.Page):
 
         dlg_edit = ft.AlertDialog(
             title=ft.Row([ft.Icon(ft.Icons.EDIT_ROUNDED, color=ft.Colors.PRIMARY), ft.Text(f"Editar Producto #{prod['id']}", weight=ft.FontWeight.BOLD)], spacing=8),
-            content=ft.Container(content=ft.Column([name_field, price_field], spacing=10, tight=True), width=400),
+            content=ft.Container(content=ft.Column([name_field, qty_field, price_field], spacing=10, tight=True), width=400),
             actions=[
                 ft.TextButton("Cancelar", on_click=lambda ev: close_dialog(dlg_edit)),
                 ft.FilledButton("Guardar Cambios", icon=ft.Icons.CHECK_ROUNDED, on_click=lambda ev: save_edit(ev, dlg_edit)),
@@ -434,6 +480,14 @@ def main(page: ft.Page):
                                 ft.Icon(ft.Icons.INVENTORY_2_OUTLINED, size=16, color=ft.Colors.GREY_500),
                                 ft.Text(p["concepto"], weight=ft.FontWeight.W_500, size=13),
                             ], spacing=6)
+                        ),
+                        ft.DataCell(
+                            ft.Container(
+                                content=ft.Text(str(p.get("cantidad", 0)), weight=ft.FontWeight.BOLD, size=13, color=ft.Colors.BLUE_GREY_800),
+                                bgcolor=ft.Colors.BLUE_GREY_50,
+                                border_radius=6,
+                                padding=ft.Padding.symmetric(horizontal=10, vertical=3),
+                            )
                         ),
                         ft.DataCell(
                             ft.Container(

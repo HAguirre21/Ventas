@@ -325,6 +325,28 @@ ALTER TABLE `productos`
 ALTER TABLE `productos_costa`
   ADD PRIMARY KEY (`id`);
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `stock`
+-- Tabla centralizada de inventario compartida entre todos los perfiles de venta.
+--
+
+CREATE TABLE `stock` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `concepto` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `cantidad` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_stock_concepto` (`concepto`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Poblar `stock` con los conceptos de `productos` (cantidad inicial 0).
+-- Ejecutar esto una vez al migrar. Ajusta las cantidades manualmente desde la app.
+--
+INSERT IGNORE INTO `stock` (concepto, cantidad)
+SELECT concepto, 0 FROM `productos`;
+
 --
 -- AUTO_INCREMENT for dumped tables
 --
