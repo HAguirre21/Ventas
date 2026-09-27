@@ -30,7 +30,8 @@ SET time_zone = "+00:00";
 CREATE TABLE `productos` (
   `id` int NOT NULL,
   `concepto` varchar(50) NOT NULL,
-  `precio` int NOT NULL
+  `precio` int NOT NULL,
+  `costo` decimal(12,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -174,7 +175,8 @@ INSERT INTO `productos` (`id`, `concepto`, `precio`) VALUES
 CREATE TABLE `productos_costa` (
   `id` int NOT NULL,
   `concepto` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `precio` int NOT NULL
+  `precio` int NOT NULL,
+  `costo` decimal(12,2) NOT NULL DEFAULT 0.00
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -346,6 +348,46 @@ CREATE TABLE `stock` (
 --
 INSERT IGNORE INTO `stock` (concepto, cantidad)
 SELECT concepto, 0 FROM `productos`;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `ventas`
+-- Registro de facturas y ventas con cálculo de utilidades diarias
+--
+
+CREATE TABLE IF NOT EXISTS `ventas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `cliente` varchar(150) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'Cliente General',
+  `perfil` varchar(50) COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'local',
+  `total_venta` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `total_costo` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `utilidad` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `fecha_hora` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ventas_fecha` (`fecha_hora`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `detalle_ventas`
+-- Desglose de productos vendidos por factura/venta
+--
+
+CREATE TABLE IF NOT EXISTS `detalle_ventas` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `venta_id` int NOT NULL,
+  `concepto` varchar(150) COLLATE utf8mb4_general_ci NOT NULL,
+  `precio_unitario` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `costo_unitario` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `cantidad` int NOT NULL DEFAULT 1,
+  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `utilidad_linea` decimal(12,2) NOT NULL DEFAULT 0.00,
+  PRIMARY KEY (`id`),
+  KEY `idx_detalle_venta_id` (`venta_id`),
+  CONSTRAINT `fk_detalle_ventas_venta` FOREIGN KEY (`venta_id`) REFERENCES `ventas` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- AUTO_INCREMENT for dumped tables
