@@ -1205,6 +1205,29 @@ def main(page: ft.Page):
 
     inp_fecha_utilidades.on_submit = lambda e: reload_utilidades()
 
+    def abrir_calendario_utilidades(e):
+        try:
+            date_picker.value = datetime.strptime(inp_fecha_utilidades.value.strip(), "%Y-%m-%d")
+        except (AttributeError, ValueError):
+            date_picker.value = datetime.now()
+        page.show_dialog(date_picker)
+
+    def seleccionar_fecha_utilidades(e):
+        nonlocal fecha_utilidades
+        if date_picker.value is None:
+            return
+        fecha_utilidades = date_picker.value.strftime("%Y-%m-%d")
+        inp_fecha_utilidades.value = fecha_utilidades
+        reload_utilidades()
+
+    date_picker = ft.DatePicker(
+        value=datetime.now(),
+        help_text="Selecciona una fecha",
+        confirm_text="Seleccionar",
+        cancel_text="Cancelar",
+        on_change=seleccionar_fecha_utilidades,
+    )
+
     utilidades_view = ft.Container(
         content=ft.Column([
             ft.Row([
@@ -1217,6 +1240,7 @@ def main(page: ft.Page):
                     ft.FilledTonalButton("Hoy", icon=ft.Icons.TODAY_ROUNDED, on_click=ir_a_hoy),
                     ft.FilledTonalButton("Ayer", icon=ft.Icons.HISTORY_ROUNDED, on_click=ir_a_ayer),
                     inp_fecha_utilidades,
+                    ft.IconButton(ft.Icons.CALENDAR_MONTH_ROUNDED, tooltip="Elegir fecha", on_click=abrir_calendario_utilidades),
                     ft.OutlinedButton("Siguiente →", icon=ft.Icons.CHEVRON_RIGHT_ROUNDED, on_click=lambda e: cambiar_fecha(1)),
                     ft.FilledButton("Consultar", icon=ft.Icons.SEARCH_ROUNDED, on_click=lambda e: reload_utilidades()),
                 ], spacing=8, alignment=ft.MainAxisAlignment.END),
