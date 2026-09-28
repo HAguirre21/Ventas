@@ -118,13 +118,13 @@ def main(page: ft.Page):
         height=180,
     )
 
-    def select_suggestion(name: str):
+    async def select_suggestion(name: str):
         inp_concepto.value = name
         suggestions_box.visible = False
         precio = db.obtener_precio_por_concepto(name)
         inp_precio.value = f"{precio:.2f}" if precio is not None else "0.00"
-        inp_cantidad.focus()
         page.update()
+        await inp_cantidad.focus()
 
     def update_suggestions(e):
         q = inp_concepto.value.strip().lower()
@@ -133,6 +133,10 @@ def main(page: ft.Page):
             matches = [p for p in catalogo if q in p["concepto"].lower()][:6]
             for m in matches:
                 stock_val = m.get("cantidad", 0)
+
+                async def on_suggestion_click(ev, name=m["concepto"]):
+                    await select_suggestion(name)
+
                 suggestions_col.controls.append(
                     ft.Container(
                         content=ft.Row([
@@ -150,7 +154,7 @@ def main(page: ft.Page):
                         padding=ft.Padding.symmetric(horizontal=10, vertical=6),
                         border_radius=6,
                         ink=True,
-                        on_click=lambda ev, name=m["concepto"]: select_suggestion(name),
+                        on_click=on_suggestion_click,
                     )
                 )
             suggestions_box.visible = bool(matches)
