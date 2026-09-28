@@ -1,7 +1,7 @@
 """
 Módulo de gestión de base de datos MySQL (XAMPP) para el Sistema de Facturación.
 Maneja conexiones seguras, transacciones (commit/rollback) y operaciones CRUD para productos.
-El stock (cantidad) se almacena en una tabla dedicada `stock`, compartida entre
+El stock y el costo de compra se almacenan en `stock`, compartida entre
 todos los perfiles de productos (local y costa).
 """
 
@@ -93,7 +93,7 @@ def asegurar_esquema_utilidades() -> bool:
     try:
         cursor = conexion.cursor()
         # 1. Asegurar columna 'costo' en productos y productos_costa
-        for tabla in ["productos", "productos_costa"]:
+        for tabla in ["productos_costa", "productos"]:
             cursor.execute(
                 """
                 SELECT COUNT(*) 
@@ -108,6 +108,39 @@ def asegurar_esquema_utilidades() -> bool:
             col_exists = fila[0] > 0 if fila else False
             if not col_exists:
                 cursor.execute(f"ALTER TABLE `{tabla}` ADD COLUMN `costo` DECIMAL(12, 2) NOT NULL DEFAULT 0.00 AFTER `precio`")
+
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'stock'
+              AND COLUMN_NAME = 'costo'
+            """
+        )
+        fila = cursor.fetchone()
+        costo_stock_exists = fila[0] > 0 if fila else False
+        if not costo_stock_exists:
+            cursor.execute(
+                "ALTER TABLE `stock` ADD COLUMN `costo` DECIMAL(12, 2) NOT NULL DEFAULT 0.00 AFTER `cantidad`"
+            )
+            cursor.execute(
+                "UPDATE `stock` s JOIN `productos_costa` p "
+                "ON LOWER(TRIM(s.concepto)) = LOWER(TRIM(p.concepto)) "
+                "SET s.costo = COALESCE(p.costo, 0)"
+            )
+            cursor.execute(
+                "UPDATE `stock` s JOIN `productos` p "
+                "ON LOWER(TRIM(s.concepto)) = LOWER(TRIM(p.concepto)) "
+                "SET s.costo = COALESCE(p.costo, 0) "
+                "WHERE s.costo = 0 AND COALESCE(p.costo, 0) > 0"
+            )
+
+        for tabla in ["productos", "productos_costa"]:
+            cursor.execute(
+                f"INSERT IGNORE INTO `stock` (concepto, cantidad, costo) "
+                f"SELECT concepto, 0, COALESCE(costo, 0) FROM `{tabla}`"
+            )
 
         # 2. Asegurar tabla ventas
         cursor.execute("""
@@ -203,7 +236,7 @@ def obtener_todos_los_productos() -> List[Dict[str, Any]]:
     try:
         cursor = conexion.cursor(dictionary=True)
         cursor.execute(
-            f"SELECT t.id, t.concepto, t.precio, COALESCE(t.costo, 0) AS costo, COALESCE(s.cantidad, 0) AS cantidad "
+            f"SELECT t.id, t.concepto, t.precio, COALESCE(s.costo, 0) AS costo, COALESCE(s.cantidad, 0) AS cantidad "
             f"FROM `{tabla}` t "
             f"LEFT JOIN `{STOCK_TABLE}` s ON LOWER(TRIM(t.concepto)) = LOWER(TRIM(s.concepto)) "
             f"ORDER BY t.concepto ASC"
@@ -288,7 +321,11 @@ def obtener_costo_por_concepto(concepto: str) -> Decimal:
     cursor = None
     try:
         cursor = conexion.cursor()
-        cursor.execute(f"SELECT COALESCE(costo, 0) FROM `{_tabla_activa()}` WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s)) LIMIT 1", (concepto,))
+        cursor.execute(
+            f"SELECT COALESCE(costo, 0) FROM `{STOCK_TABLE}` "
+            "WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s)) LIMIT 1",
+            (concepto,)
+        )
         resultado = cursor.fetchone()
         if resultado and resultado[0] is not None:
             return Decimal(str(resultado[0]))
@@ -411,9 +448,8 @@ def descontar_stock_productos(items_vendidos: List[Any]) -> Tuple[bool, str]:
 
 def agregar_producto(concepto: str, precio: Decimal, costo: Decimal = Decimal("0.00"), cantidad: int = 0, perfil: Optional[str] = None) -> Tuple[bool, str, Optional[int]]:
     """
-    Inserta un nuevo producto en las tablas local y costa, y crea/actualiza su
-    entrada en la tabla centralizada `stock`. El perfil indicado se inserta
-    primero y determina el ID retornado; si no se indica, usa el activo.
+    Inserta un nuevo producto en el catálogo indicado y crea/actualiza su
+    entrada en la tabla centralizada `stock`. Si no se indica un perfil, usa el activo.
     Retorna (éxito: bool, mensaje: str, nuevo_id: int o None).
     """
     concepto = concepto.strip()
@@ -434,22 +470,18 @@ def agregar_producto(concepto: str, precio: Decimal, costo: Decimal = Decimal("0
     try:
         cursor = conexion.cursor()
 
-        # 1. Insertar el producto en ambos catálogos dentro de la misma transacción
+        # 1. Insertar el producto únicamente en el catálogo seleccionado
         tabla_principal = _tabla_activa(perfil)
-        tablas_producto = [tabla_principal] + [perfil_data["table"] for perfil_data in DB_PROFILES.values()]
-        nuevo_id = None
-        for tabla in dict.fromkeys(tablas_producto):
-            query_prod = f"INSERT INTO `{tabla}` (concepto, precio, costo) VALUES (%s, %s, %s)"
-            cursor.execute(query_prod, (concepto, float(precio), float(costo)))
-            if tabla == tabla_principal:
-                nuevo_id = cursor.lastrowid
+        query_prod = f"INSERT INTO `{tabla_principal}` (concepto, precio, costo) VALUES (%s, %s, %s)"
+        cursor.execute(query_prod, (concepto, float(precio), float(costo)))
+        nuevo_id = cursor.lastrowid
 
         # 2. Crear o actualizar el registro en la tabla de stock centralizada
         query_stock = (
-            f"INSERT INTO `{STOCK_TABLE}` (concepto, cantidad) VALUES (%s, %s) "
-            f"ON DUPLICATE KEY UPDATE cantidad = VALUES(cantidad)"
+            f"INSERT INTO `{STOCK_TABLE}` (concepto, cantidad, costo) VALUES (%s, %s, %s) "
+            f"ON DUPLICATE KEY UPDATE cantidad = VALUES(cantidad), costo = VALUES(costo)"
         )
-        cursor.execute(query_stock, (concepto, int(cantidad)))
+        cursor.execute(query_stock, (concepto, int(cantidad), float(costo)))
 
         conexion.commit()
         return True, f"Producto '{concepto}' agregado exitosamente.", nuevo_id
@@ -464,8 +496,8 @@ def agregar_producto(concepto: str, precio: Decimal, costo: Decimal = Decimal("0
 
 def actualizar_producto(id_producto: int, nuevo_concepto: str, nuevo_precio: Decimal, nuevo_costo: Decimal = Decimal("0.00"), nueva_cantidad: int = 0) -> Tuple[bool, str]:
     """
-    Actualiza el nombre, precio y costo del producto en ambos catálogos, y sincroniza
-    el stock en la tabla centralizada `stock`.
+    Actualiza el nombre, precio y costo del producto en el catálogo activo, y
+    sincroniza el stock en la tabla centralizada `stock`.
     Retorna (éxito: bool, mensaje: str).
     """
     nuevo_concepto = nuevo_concepto.strip()
@@ -496,35 +528,42 @@ def actualizar_producto(id_producto: int, nuevo_concepto: str, nuevo_precio: Dec
 
         concepto_anterior = str(fila[0]).strip()
 
-        # 2. Actualizar ambos catálogos dentro de la misma transacción
+        # 2. Actualizar únicamente el catálogo activo
         tabla_activa = _tabla_activa()
-        for tabla_data in DB_PROFILES.values():
-            tabla = tabla_data["table"]
-            if tabla == tabla_activa:
-                cursor.execute(
-                    f"UPDATE `{tabla}` SET concepto = %s, precio = %s, costo = %s WHERE id = %s",
-                    (nuevo_concepto, float(nuevo_precio), float(nuevo_costo), id_producto)
-                )
-            else:
-                cursor.execute(
-                    f"UPDATE `{tabla}` SET concepto = %s, precio = %s, costo = %s "
-                    "WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s))",
-                    (nuevo_concepto, float(nuevo_precio), float(nuevo_costo), concepto_anterior)
-                )
+        cursor.execute(
+            f"UPDATE `{tabla_activa}` SET concepto = %s, precio = %s, costo = %s WHERE id = %s",
+            (nuevo_concepto, float(nuevo_precio), float(nuevo_costo), id_producto)
+        )
 
-        # 3. Si el nombre cambió, renombrar en la tabla stock también
+        # 3. Si el nombre cambió, conservar el stock anterior si otro catálogo
+        # todavía contiene ese concepto.
         if concepto_anterior.lower() != nuevo_concepto.lower():
-            cursor.execute(
-                f"UPDATE `{STOCK_TABLE}` SET concepto = %s WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s))",
-                (nuevo_concepto, concepto_anterior)
-            )
+            otras_tablas = [
+                perfil_data["table"]
+                for perfil_data in DB_PROFILES.values()
+                if perfil_data["table"] != tabla_activa
+            ]
+            concepto_en_otra_tabla = False
+            for tabla in otras_tablas:
+                cursor.execute(
+                    f"SELECT COUNT(*) FROM `{tabla}` WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s))",
+                    (concepto_anterior,)
+                )
+                resultado = cursor.fetchone()
+                concepto_en_otra_tabla = concepto_en_otra_tabla or bool(resultado and resultado[0])
+
+            if not concepto_en_otra_tabla:
+                cursor.execute(
+                    f"UPDATE `{STOCK_TABLE}` SET concepto = %s WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s))",
+                    (nuevo_concepto, concepto_anterior)
+                )
 
         # 4. Upsert en stock con la cantidad indicada
         query_stock = (
-            f"INSERT INTO `{STOCK_TABLE}` (concepto, cantidad) VALUES (%s, %s) "
-            f"ON DUPLICATE KEY UPDATE cantidad = VALUES(cantidad)"
+            f"INSERT INTO `{STOCK_TABLE}` (concepto, cantidad, costo) VALUES (%s, %s, %s) "
+            f"ON DUPLICATE KEY UPDATE cantidad = VALUES(cantidad), costo = VALUES(costo)"
         )
-        cursor.execute(query_stock, (nuevo_concepto, int(nueva_cantidad)))
+        cursor.execute(query_stock, (nuevo_concepto, int(nueva_cantidad), float(nuevo_costo)))
 
         conexion.commit()
         return True, f"Producto #{id_producto} actualizado correctamente."
@@ -539,8 +578,7 @@ def actualizar_producto(id_producto: int, nuevo_concepto: str, nuevo_precio: Dec
 
 def eliminar_producto(id_producto: int) -> Tuple[bool, str]:
     """
-    Elimina un producto de ambos catálogos usando el ID del perfil activo
-    para localizar el concepto correspondiente.
+    Elimina un producto del catálogo activo usando su ID.
     Si el concepto ya no existe en ninguna tabla de productos, elimina
     también su entrada en la tabla de stock.
     Retorna (éxito: bool, mensaje: str).
@@ -558,21 +596,12 @@ def eliminar_producto(id_producto: int) -> Tuple[bool, str]:
         fila = cursor.fetchone()
         concepto = str(fila[0]).strip() if fila else None
 
-        # 2. Eliminar de ambos catálogos dentro de la misma transacción
+        # 2. Eliminar únicamente del catálogo activo
         tabla_activa = _tabla_activa()
         cursor.execute(f"DELETE FROM `{tabla_activa}` WHERE id = %s", (id_producto,))
         if cursor.rowcount == 0:
             conexion.rollback()
             return False, f"No se encontró el producto #{id_producto} en la base de datos."
-
-        if concepto:
-            for tabla_data in DB_PROFILES.values():
-                tabla = tabla_data["table"]
-                if tabla != tabla_activa:
-                    cursor.execute(
-                        f"DELETE FROM `{tabla}` WHERE LOWER(TRIM(concepto)) = LOWER(TRIM(%s))",
-                        (concepto,)
-                    )
 
         # 3. Si el concepto ya no existe en ninguna tabla de productos, limpiar stock también
         if concepto:
@@ -639,7 +668,7 @@ def registrar_venta(cliente: str, items: List[Any], perfil: Optional[str] = None
             placeholders = ", ".join(["%s"] * len(conceptos))
             cursor.execute(
                 f"SELECT LOWER(TRIM(concepto)) as nom, COALESCE(costo, 0) as costo "
-                f"FROM `{tabla}` "
+                f"FROM `{STOCK_TABLE}` "
                 f"WHERE LOWER(TRIM(concepto)) IN ({placeholders})",
                 tuple(conceptos)
             )

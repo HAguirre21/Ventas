@@ -338,6 +338,7 @@ CREATE TABLE `stock` (
   `id` int NOT NULL AUTO_INCREMENT,
   `concepto` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
   `cantidad` int NOT NULL DEFAULT 0,
+  `costo` decimal(12,2) NOT NULL DEFAULT 0.00,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_stock_concepto` (`concepto`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;

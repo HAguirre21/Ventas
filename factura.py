@@ -258,6 +258,8 @@ def main(page: ft.Page):
         notify(f"'{concepto}' agregado a la factura.")
         inp_concepto.focus()
 
+    inp_cantidad.on_submit = add_to_invoice
+
     def generate_pdf_action(e):
         if not items_factura:
             notify("Agrega al menos un producto a la factura.", es_advertencia=True)
@@ -268,6 +270,7 @@ def main(page: ft.Page):
             hint_text="Escribe el nombre del cliente",
             prefix_icon=ft.Icons.PERSON_OUTLINE_ROUNDED,
             autofocus=True,
+            on_submit=lambda ev: confirm_pdf(ev, client_dialog),
         )
 
         def confirm_pdf(ev, dialog):
